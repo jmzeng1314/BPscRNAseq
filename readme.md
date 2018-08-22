@@ -1,4 +1,4 @@
-# Best practice for scRNA seq data
+# I hope It will be the best practice for scRNA seq data(downstream analysis)
 
 ### Upstream workflow 
 

@@ -1,0 +1,180 @@
+---
+title: "Create_rData"
+author: "jmzeng1314@163.com"
+date: "5/10/2018"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# gene id information based on gencode
+
+## For human
+
+first change  gencode.v25.annotation.gtf to human.gene.positions by the script 
+
+```
+cat gencode.v25.annotation.gtf|perl -alne '{next unless $F[2] eq "gene";print}'|grep -w HAVANA |\
+cut -f 1,4,5,9| cut -d";" -f 1,2,4|sed 's/gene_id//g'|sed 's/gene_type//g'|sed 's/gene_name//g'|\
+sed 's/;//g'| sed 's/\"//g'|perl -alne '{/(ENSG\d+)/;print "$1\t$_"}' >human.gene.positions
+
+```
+Once we got the human.gene.positions file, we should tranfer it in our R package
+```
+ENSG00000223972	chr1	11869	14409	 ENSG00000223972.5  transcribed_unprocessed_pseudogene  DDX11L1
+ENSG00000227232	chr1	14404	29570	 ENSG00000227232.5  unprocessed_pseudogene  WASH7P
+ENSG00000243485	chr1	29554	31109	 ENSG00000243485.4  lincRNA  MIR1302-2
+ENSG00000237613	chr1	34554	36081	 ENSG00000237613.2  lincRNA  FAM138A
+ENSG00000268020	chr1	52473	53312	 ENSG00000268020.3  unprocessed_pseudogene  OR4G4P
+ENSG00000240361	chr1	62948	63887	 ENSG00000240361.1  unprocessed_pseudogene  OR4G11P
+ENSG00000186092	chr1	69091	70008	 ENSG00000186092.4  protein_coding  OR4F5
+ENSG00000238009	chr1	89295	133723	 ENSG00000238009.6  lincRNA  RP11-34P13.7
+ENSG00000239945	chr1	89551	91105	 ENSG00000239945.1  lincRNA  RP11-34P13.8
+ENSG00000233750	chr1	131025	134836	 ENSG00000233750.3  processed_pseudogene  CICP27
+```
+
+```{r,eval=F}
+options(stringsAsFactors = F)
+a=read.table('data/human.gene.positions')[,c(2:4,1,6,7)]
+colnames(a)=c('chr','start','end','ensembl','type','symbol')
+length(unique(a$symbol))
+length(unique(a$ensembl))
+head(a)
+human_geneInfo_genecode_v25=a
+devtools::use_data(human_geneInfo_genecode_v25, overwrite = T)
+```
+
+## For mouse
+
+first change  gencode.vM12.annotation.gtf.gz  to mouse.gene.positions by the script 
+
+```
+zcat gencode.vM12.annotation.gtf.gz |perl -alne '{next unless $F[2] eq "gene";print}'| \
+grep -w HAVANA |cut -f 1,4,5,9| cut -d";" -f 1,2,3|sed 's/gene_id//g'|sed 's/gene_type//g'|\
+sed 's/gene_name//g'|sed 's/;//g'| sed 's/\"//g'| perl -alne '{/(ENSMUSG\d+)/;print "$1\t$_"}' >mouse.gene.positions
+```
+Once we got the mouse.gene.positions file, we should tranfer it in our R package
+```
+ENSMUSG00000102693	chr1	3073253	3074322	 ENSMUSG00000102693.1  4933401J01Rik
+ENSMUSG00000051951	chr1	3205901	3671498	 ENSMUSG00000051951.5  Xkr4
+ENSMUSG00000102851	chr1	3252757	3253236	 ENSMUSG00000102851.1  Gm18956
+ENSMUSG00000103377	chr1	3365731	3368549	 ENSMUSG00000103377.1  Gm37180
+ENSMUSG00000104017	chr1	3375556	3377788	 ENSMUSG00000104017.1  Gm37363
+ENSMUSG00000103025	chr1	3464977	3467285	 ENSMUSG00000103025.1  Gm37686
+ENSMUSG00000089699	chr1	3466587	3513553	 ENSMUSG00000089699.1  Gm1992
+ENSMUSG00000103201	chr1	3512451	3514507	 ENSMUSG00000103201.1  Gm37329
+ENSMUSG00000103147	chr1	3531795	3532720	 ENSMUSG00000103147.1  Gm7341
+ENSMUSG00000103161	chr1	3592892	3595903	 ENSMUSG00000103161.1  Gm38148
+```
+
+```{r,eval=F}
+
+## for mouse gencode.vM12.annotation.gtf.gz
+options(stringsAsFactors = F)
+a=read.table('data/mouse.gene.positions')[,c(2:4,1,6)]
+colnames(a)=c('chr','start','end','ensembl','symbol')
+length(unique(a$symbol))
+length(unique(a$ensembl))
+head(a)
+mouse_geneInfo_genecode_vM12=a
+devtools::use_data(mouse_geneInfo_genecode_vM12, overwrite = T)
+
+```
+
+
+
+
+
+# gene length information based on gencode
+
+## For human
+
+First, we computed gene lengths by taking the union of all exons within a gene based on   gencode.v25.annotation.gtf 
+
+```
+cat ~/reference/gtf/gencode/gencode.v25.annotation.gtf |grep -v PAR_Y |perl -alne '{next if /^#/;if($F[2] eq "gene"){/(ENSG\d+)/;$gene=$1;undef %h} if($F[2] eq "exon"){$key="$F[3]\t$F[4]";$len=$F[4]-$F[3];$c{$gene}+=$len unless exists $h{$key};$h{$key}++} }END{print "$_\t$c{$_}" foreach keys %c}' >>human_ENSG_length
+```
+Once we got the human_ENSG_length file(totally 57992 genes), we should tranfer it in our R package
+```
+ENSG00000252040	131
+ENSG00000251770	82
+ENSG00000261028	856
+ENSG00000186844	421
+ENSG00000234241	1682
+ENSG00000144815	15589
+ENSG00000171236	3602
+ENSG00000262151	1062
+ENSG00000237381	1422
+ENSG00000164123	1835
+```
+
+```{r,eval=F}
+options(stringsAsFactors = F)
+  a=read.table('data/human_ENSG_length') 
+  colnames(a)=c( 'ensembl','length' )
+  head(a)
+  human_geneLength_genecode_v25=a
+  devtools::use_data(human_geneLength_genecode_v25, overwrite = T)
+```
+
+## For mouse
+
+first change  gencode.vM12.annotation.gtf.gz  to mouse_ENSG_length by the script 
+
+```
+ cat gencode.vM12.annotation.gtf |perl -alne '{next if /^#/;if($F[2] eq "gene"){/(ENSMUSG\d+)/;$gene=$1;undef %h} if($F[2] eq "exon"){$key="$F[3]\t$F[4]";$len=$F[4]-$F[3];$c{$gene}+=$len unless exists $h{$key};$h{$key}++} }END{print "$_\t$c{$_}" foreach keys %c}' >mouse_ENSG_length
+
+```
+Once we got the mouse_ENSG_length file(totally 49585 genes), we should tranfer it in our R package
+```
+ENSMUSG00000019297	3684
+ENSMUSG00000109529	2059
+ENSMUSG00000026452	9834
+ENSMUSG00000048763	6004
+ENSMUSG00000023903	3363
+ENSMUSG00000107858	3759
+ENSMUSG00000057799	896
+ENSMUSG00000077492	131
+ENSMUSG00000078291	431
+ENSMUSG00000101288	586
+```
+
+```{r,eval=F}
+## for mouse gencode.vM12.annotation.gtf.gz
+options(stringsAsFactors = F)
+a=read.table('data/mouse_ENSG_length') 
+colnames(a)=c( 'ensembl','length' )
+head(a)
+mouse_geneLength_genecode_vM12=a
+devtools::use_data(mouse_geneLength_genecode_vM12, overwrite = T)
+```
+
+
+
+
+
+
+# The orthologous genes between human and mouse  
+
+Firstly, I download the file **HOM_AllOrganism.rpt**  from : http://www.informatics.jax.org/homology.shtml 
+
+Then process it by :
+```
+perl -F"\t" -alne '{$key=$F[0];$h1{$key}=$F[3] if /human/;$h2{$key}=$F[3] if /mouse/;}END{print "$h1{$_},$h2{$_}" foreach keys %h1}' HOM_AllOrganism.rpt  >human2mouse.csv
+```
+Then transfer this file to package
+
+```{r,eval=F}
+a=read.csv('data/human2mouse.csv',header = F )
+table(a[,1] == toupper(a[,2]))
+colnames(a)=c('human','mouse')
+rmGenes=apply(a,1,function(x) sum(x=='') >0)
+a=a[!rmGenes,]
+table(a[,1] == toupper(a[,2]))
+human2mouse_symbols=a
+devtools::use_data(human2mouse_symbols, overwrite = T)
+```
